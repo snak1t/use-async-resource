@@ -5,11 +5,13 @@ type GetCurrentState<T> = () => T | null;
 export type AsyncResourceBag<T> = {
   getCurrentState: GetCurrentState<T>;
   setState: (cb: (state: T) => T) => void;
-  arguments?: any;
 };
 
 type AsyncResourceConfig<T, K> = {
-  actions: Record<keyof K, (config: AsyncResourceBag<T>) => T | Promise<T>>;
+  actions: Record<
+    keyof K,
+    (config: AsyncResourceBag<T>) => (...args: any[]) => T | Promise<T>
+  >;
   initialState?: T;
 };
 
@@ -84,35 +86,37 @@ export function useAsyncResource<T, K>({
 
   const actionsList: Array<[
     string,
-    (config: AsyncResourceBag<T>) => T | Promise<T>
+    (config: AsyncResourceBag<T>) => (...args: any[]) => T | Promise<T>
   ]> = Object.entries(actions);
 
-  const actionsWithAsyncBag = actionsList.map(([key, cb]) => [
-    key,
-    async (...args: any[]) => {
-      setLoading(key);
-      try {
-        const response: T = await cb({
-          getCurrentState,
-          arguments: args,
-          setState: cb =>
-            setState(currentState => {
-              if (
-                currentState.type === 'resolved' ||
-                currentState.type === 'rerunning'
-              ) {
-                return {
-                  ...currentState,
-                  data: cb(currentState.data),
-                };
-              }
-              return currentState;
-            }),
-        });
-        setResolved(response);
-      } catch (error) {}
-    },
-  ]);
+  const actionsWithAsyncBag = actionsList.map(([key, cb]) => {
+    const fnWithInjectedAsyncBag = cb({
+      getCurrentState,
+      setState: cb =>
+        setState(currentState => {
+          if (
+            currentState.type === 'resolved' ||
+            currentState.type === 'rerunning'
+          ) {
+            return {
+              ...currentState,
+              data: cb(currentState.data),
+            };
+          }
+          return currentState;
+        }),
+    });
+    return [
+      key,
+      async (...args: any[]) => {
+        setLoading(key);
+        try {
+          const response: T = await fnWithInjectedAsyncBag(...args);
+          setResolved(response);
+        } catch (error) {}
+      },
+    ];
+  });
 
   const userActions: UserActions<T, K> = Object.fromEntries(
     actionsWithAsyncBag

@@ -8,20 +8,18 @@ type User = {
   location: string;
 };
 
-const getUsers = async ({
-  arguments: [page],
-  getCurrentState,
-}: AsyncResourceBag<User[]>): Promise<User[]> => {
+const getUsers = ({ getCurrentState }: AsyncResourceBag<User[]>) => async (
+  page: number
+): Promise<User[]> => {
   const users = await fetch(`/users?_page=${page}`).then(res => res.json());
   const storedUsers = getCurrentState();
   return storedUsers ? [...storedUsers, ...users] : users;
 };
 
-const addUser = async ({
-  arguments: [user],
+const addUser = ({
   getCurrentState,
   setState,
-}: AsyncResourceBag<User[]>): Promise<User[]> => {
+}: AsyncResourceBag<User[]>) => async (user: User): Promise<User[]> => {
   setState((users: User[]) => {
     return [...users, { ...(user as User), id: -Math.random() }];
   });
