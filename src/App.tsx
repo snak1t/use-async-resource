@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import './App.css';
-import { useAsyncResource, AsyncResourceBag } from './useAsyncResource';
+import React, { useEffect, useState } from "react";
+import "./App.css";
+import { useAsyncResource, AsyncResourceBag } from "./useAsyncResource";
 
 type User = {
   id: number;
@@ -18,14 +18,14 @@ const getUsers = ({ getCurrentState }: AsyncResourceBag<User[]>) => async (
 
 const addUser = ({
   getCurrentState,
-  setState,
+  setState
 }: AsyncResourceBag<User[]>) => async (user: User): Promise<User[]> => {
   setState((users: User[]) => {
     return [...users, { ...(user as User), id: -Math.random() }];
   });
-  const resp = await fetch('/users', {
+  const resp = await fetch("/users", {
     body: JSON.stringify(user),
-    method: 'POST',
+    method: "POST"
   });
   const res: Partial<User> = await resp.json();
   const finalUser: User = { ...user, ...res };
@@ -47,8 +47,8 @@ function App() {
   >({
     actions: {
       get: getUsers,
-      add: addUser,
-    },
+      add: addUser
+    }
   });
   useEffect(() => {
     actions.get(currentPage);
@@ -59,7 +59,7 @@ function App() {
       <br />
       <br />
       <button onClick={() => setCurrentPage(x => x + 1)}>Load more</button>
-      <button onClick={() => actions.add({ name: 'John', location: 'Sydney' })}>
+      <button onClick={() => actions.add({ name: "John", location: "Sydney" })}>
         Add
       </button>
     </div>
